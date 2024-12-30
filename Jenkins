@@ -1,0 +1,35 @@
+
+pipeline {
+    agent any
+    stages {
+        
+        stage('SCM') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Latesh98/examdata123'
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                sh "/usr/local/bin/docker image build -t amitksunbeam/backend ."
+            }
+        }
+        
+        stage("Push docker image") {
+            steps {
+                withCredentials([string(credentialsId: 'DOCKER_HUB_TOKEN', variable: 'DOCKER_HUB_TOKEN')]) {
+                    sh "echo $DOCKER_HUB_TOKEN | /usr/local/bin/docker login -u amitksunbeam --password-stdin"
+                    sh "/usr/local/bin/docker image push amitksunbeam/backend"
+                }
+            }
+        }
+        
+        stage("Deploy docker service") {
+            steps {
+                sh "/usr/local/bin/docker service rm backend"
+                sh "/usr/local/bin/docker service create --name backend -p 4000:4000 --replicas 2 amitksunbeam/backend"
+            }
+        }
+        
+    }
+}
